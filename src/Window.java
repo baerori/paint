@@ -204,8 +204,6 @@ public class Window extends JFrame implements ActionListener{
         figuresPanel.add(Bcarre);
 
         southPanel.add(figuresPanel, "West");
-
-
         contentPanel.add(draw, "Center");
 
         this.setVisible(true);

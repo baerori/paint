@@ -4,9 +4,13 @@ import javax.swing.*;
 import java.io.*;
 import java.util.ArrayList;
 
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileSystemView;
+
 /*
 * How to use arraylists : https://www.w3schools.com/java/java_arraylist.asp
 * How to use Serialisation https://www.baeldung.com/java-serialization
+* File chooser JAVA : https://mkyong.com/swing/java-swing-jfilechooser-example/
 
 */
 
@@ -20,13 +24,10 @@ public class Drawing extends JPanel implements MouseMotionListener, MouseListene
     public Drawing(){
         this.setBackground(Color.white);
         this.addMouseListener(this);      //Interactions with the mouse
+        this.addMouseMotionListener(this);
         this.setColor(Color.black);         //initialisation of the drawing's parameters
         this.setNameFigure("Ellipse");
-        //Rectangle rect1 = new Rectangle(100, 100, Color.blue);
-        //rect1.this(this.getGraphics());
     }
-
-
 
     //setters
     public void setColor(Color c) {
@@ -81,65 +82,97 @@ public class Drawing extends JPanel implements MouseMotionListener, MouseListene
     public void mouseReleased(MouseEvent e){
         x = e.getX();
         y = e.getY();
-        switch (nameFigure){
+        switch (this.nameFigure){
             case "Square":
-                list.get(list.size()-1).setBoundingBox(Math.max(Math.abs(list.get(list.size()-1).origin.getX()-x), Math.abs(list.get(list.size()-1).origin.getY()-y)),Math.max(Math.abs(list.get(list.size()-1).origin.getX()-x), Math.abs(list.get(list.size()-1).origin.getY()-y)));
-                //récupérer la plus grande variation sur un axe
+                list.get(list.size()-1).setBoundingBox(x-list.get(list.size()-1).origin.getX(), y-list.get(list.size()-1).origin.getY());
+                //Square : choosing the biggest variation on one axis for setting the edge
                 break;
             case "Circle":
-                list.get(list.size()-1).setBoundingBox(Math.max(Math.abs(list.get(list.size()-1).origin.getX()-x), Math.abs(list.get(list.size()-1).origin.getY()-y)),Math.max(Math.abs(list.get(list.size()-1).origin.getX()-x), Math.abs(list.get(list.size()-1).origin.getY()-y)));
+                list.get(list.size()-1).setBoundingBox(x-list.get(list.size()-1).origin.getX(),y-list.get(list.size()-1).origin.getY());
                 break;
             case "Rectangle":
-                list.get(list.size()-1).setBoundingBox(Math.abs(list.get(list.size()-1).origin.getY()-y),Math.abs(list.get(list.size()-1).origin.getX()-x));
+                list.get(list.size()-1).setBoundingBox(y-list.get(list.size()-1).origin.getY(),x-list.get(list.size()-1).origin.getX());
                 break;
             case "Ellipse":
-                list.get(list.size()-1).setBoundingBox(Math.abs((list.get(list.size()-1).origin.getX()-x)), Math.abs(list.get(list.size()-1).origin.getY()-y));
+                list.get(list.size()-1).setBoundingBox((x-list.get(list.size()-1).origin.getX()), y-list.get(list.size()-1).origin.getY());
         }
-        list.get(list.size()-1).draw(this.getGraphics());
+        paintComponent(this.getGraphics());
         System.out.println("A2 : Nb="+list.size()+", "+list); /////////////////////////////////////////DEBUG
     }
 
 
-    public void paintComponent(){}
+    public void paintComponent(Graphics g){
+        super.paintComponent(g); // to clear the drawing
+        for(Figure f : this.list){
+            f.draw(g);
+        }
+    }
     public void recallDrawing(){}
 
-
     //overrindings
-    @Override
     public void mouseDragged(MouseEvent e) {
-
-        System.out.println("Mouse Dragged: " + e.getX() + " , " + e.getY());
+        x = e.getX();
+        y = e.getY();
+        switch (this.nameFigure){
+            case "Square":
+                list.get(list.size()-1).setBoundingBox(x-list.get(list.size()-1).origin.getX(), y-list.get(list.size()-1).origin.getY());
+                //Square : choosing the biggest variation on one axis for setting the edge
+                break;
+            case "Circle":
+                list.get(list.size()-1).setBoundingBox(x-list.get(list.size()-1).origin.getX(),y-list.get(list.size()-1).origin.getY());
+                break;
+            case "Rectangle":
+                list.get(list.size()-1).setBoundingBox(y-list.get(list.size()-1).origin.getY(),x-list.get(list.size()-1).origin.getX());
+                break;
+            case "Ellipse":
+                list.get(list.size()-1).setBoundingBox((x-list.get(list.size()-1).origin.getX()), y-list.get(list.size()-1).origin.getY());
+        }
+        paintComponent(this.getGraphics());
     }
 
-    @Override
-    public void mouseMoved(MouseEvent e) {
-        // TODO Auto-generated method stub
-        System.out.println("Mouse Moved: " + e.getX() + " , " + e.getY());
-
+    public void mouseMoved(MouseEvent e) {//System.out.println("Mouse Moved: " + e.getX() + " , " + e.getY());
     }
 
     public void saveFigures() throws IOException, ClassNotFoundException {
-        FileOutputStream fileOutputStream = new FileOutputStream("yourfile.txt");
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
-        for(Figure f : this.list){
-            objectOutputStream.writeObject(this.list);
+
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        jfc.setDialogTitle("Choose a file to save the drawing : ");
+        jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        int returnValue = jfc.showSaveDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            if (jfc.getSelectedFile().isFile()) {
+                System.out.println("You selected the directory: " + jfc.getSelectedFile());
+                FileOutputStream fileOutputStream = new FileOutputStream(jfc.getSelectedFile());
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+                for(Figure f : this.list){
+                    objectOutputStream.writeObject(this.list);
+                }
+                objectOutputStream.flush();
+                objectOutputStream.close();
+            }
         }
-        objectOutputStream.flush();
-        objectOutputStream.close();
     }
 
     public void openFile() throws IOException, ClassNotFoundException {
 
-        FileInputStream fileInputStream = new FileInputStream("yourfile.txt");
-        ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+
+        int returnValue = jfc.showOpenDialog(null);
+        // int returnValue = jfc.showSaveDialog(null);
+
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = jfc.getSelectedFile();
+            //System.out.println(selectedFile.getAbsolutePath());
+            //JFIleChooser and BufferedImage
+            FileInputStream fileInputStream = new FileInputStream(selectedFile.getAbsolutePath());
+            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
 
         this.list  = (ArrayList<Figure>) objectInputStream.readObject();
         objectInputStream.close();
-
-        for(Figure f : this.list){
-            f.draw(this.getGraphics());
+        paintComponent(this.getGraphics());
+        System.out.print(this.list.size());
         }
-
     }
 
 }
